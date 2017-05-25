@@ -1,7 +1,7 @@
 /*! angularjs-slider - v6.1.2 - 
  (c) Rafal Zajac <rzajac@gmail.com>, Valentin Hervieu <valentin@hervieu.me>, Jussi Saarivirta <jusasi@gmail.com>, Angelin Sirbu <angelin.sirbu@gmail.com> - 
  https://github.com/angular-slider/angularjs-slider - 
- 2017-05-15 */
+ 2017-05-25 */
 /*jslint unparam: true */
 /*global angular: false, console: false, define, module */
 (function(root, factory) {
@@ -158,7 +158,7 @@
 
   .factory('RzSlider', ['$timeout', '$document', '$window', '$compile', 'RzSliderOptions', 'rzThrottle', function($timeout, $document, $window, $compile, RzSliderOptions, rzThrottle) {
     'use strict';
-
+    
     /**
      * Slider
      *
@@ -458,7 +458,7 @@
         }
         return index;
       },
-
+      
       syncLowValue: function() {
         if (this.options.stepsArray) {
           if (!this.options.bindIndexForStepsArray)
@@ -1569,9 +1569,10 @@
         if (event[clientXY] !== undefined) {
           return event[clientXY];
         }
-
-        return event.originalEvent === undefined ?
-          event.touches[0][clientXY] : event.originalEvent.touches[0][clientXY];
+        
+        var originalEvent = event.originalEvent === undefined ? event : event.originalEvent;
+        var referenceTouches = originalEvent.touches.length > 1 ? originalEvent.changedTouches : originalEvent.touches;
+        return referenceTouches[0][clientXY];
       },
 
       /**
@@ -1763,8 +1764,19 @@
         ehEnd = angular.bind(this, this.onEnd, ehMove);
 
         $document.on(eventNames.moveEvent, ehMove);
-        $document.one(eventNames.endEvent, ehEnd);
+        
+        $document.on(eventNames.endEvent, ehEnd);
+        this.ehEndToBeRemovedOnEnd = ehEnd;
         this.callOnStart();
+        
+        var changedTouches = event.originalEvent === undefined ? event.changedTouches : event.originalEvent.changedTouches;
+        if (changedTouches) {
+			// Store the touch identifier
+			if (!this.touchId) {
+				this.isDragging = true;
+				this.touchId = changedTouches[0].identifier;
+			}
+		}
       },
 
       /**
@@ -1776,6 +1788,11 @@
        * @returns {undefined}
        */
       onMove: function(pointer, event, fromTick) {
+    	var changedTouches = event.originalEvent === undefined ? event.changedTouches : event.originalEvent.changedTouches;
+    	if (changedTouches && changedTouches[0].identifier != this.touchId) {
+    		return;
+    	}
+    	  
         var newPos = this.getEventPosition(event),
           newValue,
           ceilValue = this.options.rightToLeft ? this.minValue : this.maxValue,
@@ -1794,7 +1811,7 @@
         }
         this.positionTrackingHandle(newValue);
       },
-
+      
       /**
        * onEnd event handler
        *
@@ -1803,6 +1820,16 @@
        * @returns {undefined}
        */
       onEnd: function(ehMove, event) {
+    	var changedTouches = event.originalEvent === undefined ? event.changedTouches : event.originalEvent.changedTouches;
+    	if (changedTouches && changedTouches[0].identifier != this.touchId) {
+    		return;
+    	}
+    	this.isDragging = false;
+		this.touchId = null;
+		
+		// Touch event, the listener was added by us so we need to remove it
+		$document.off("touchend", this.ehEndToBeRemovedOnEnd);
+    	
         var moveEventName = this.getEventNames(event).moveEvent;
 
         if (!this.options.keyboardSupport) {
@@ -1842,9 +1869,11 @@
       onPointerBlur: function(pointer) {
         pointer.off('keydown');
         pointer.off('keyup');
-        this.tracking = '';
         pointer.removeClass('rz-active');
-        this.currentFocusElement = null
+        if (!this.isDragging) {
+	        this.tracking = '';
+	        this.currentFocusElement = null
+        }
       },
 
       /**

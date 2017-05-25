@@ -407,5 +407,89 @@
         expect(helper.slider.callOnStart.callCount).to.equal(1);
         expect(helper.slider.callOnChange.callCount).to.equal(1);
       });
+      
+      it('should handle touch start, touch move and touch end correctly when multitouch with originalEvent', function() {
+      	  sinon.spy(helper.slider, 'positionTrackingHandle');
+          sinon.spy(helper.slider, 'callOnChange');
+          var eventOnSlider = helper.fireTouchstartWithOriginalEvent(helper.slider.minH, 0, 0, [0]);
+          var expectedValue = 50;
+          var touchPositionForSlider = helper.getMousePosition(expectedValue);
+          // touch move for slider
+          helper.fireTouchmoveWithOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          // simultaneous touch move
+          var otherTouchPosition = touchPositionForSlider + 100;
+          helper.fireTouchmoveWithOriginalEvent(otherTouchPosition, 1, [0, 1]);
+          
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(1);
+          expect(helper.slider.callOnChange.callCount).to.equal(1);
+          
+          // Other touch ends
+          helper.fireTouchendWithOriginalEvent(1, [0,1]);
+          
+          var expectedValue = 60;
+          var touchPositionForSlider = helper.getMousePosition(expectedValue);
+          // touch move for slider
+          helper.fireTouchmoveWithOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          
+          // can still drag the slider
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(2);
+          expect(helper.slider.callOnChange.callCount).to.equal(2);
+          
+          // Slider touch ends
+          helper.fireTouchendWithOriginalEvent(0, [0,1]);
+          
+          //Can not drag the slider anymore
+          var touchPositionForSlider = helper.getMousePosition(70);
+          // touch move for slider
+          helper.fireTouchmoveWithOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(2);
+          expect(helper.slider.callOnChange.callCount).to.equal(2);
+      });
+      
+      it('should handle touch start, touch move and touch end correctly when multitouch without originalEvent', function() {
+      	  sinon.spy(helper.slider, 'positionTrackingHandle');
+          sinon.spy(helper.slider, 'callOnChange');
+          var eventOnSlider = helper.fireTouchstartWithoutOriginalEvent(helper.slider.minH, 0, 0, [0]);
+          var expectedValue = 50;
+          var touchPositionForSlider = helper.getMousePosition(expectedValue);
+          // touch move for slider
+          helper.fireTouchmoveWithoutOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          // simultaneous touch move
+          var otherTouchPosition = touchPositionForSlider + 100;
+          helper.fireTouchmoveWithoutOriginalEvent(otherTouchPosition, 1, [0, 1]);
+          
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(1);
+          expect(helper.slider.callOnChange.callCount).to.equal(1);
+          
+          // Other touch ends
+          helper.fireTouchendWithoutOriginalEvent(1, [0,1]);
+          
+          var expectedValue = 60;
+          var touchPositionForSlider = helper.getMousePosition(expectedValue);
+          // touch move for slider
+          helper.fireTouchmoveWithoutOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          
+          // can still drag the slider
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(2);
+          expect(helper.slider.callOnChange.callCount).to.equal(2);
+          
+          // Slider touch ends
+          helper.fireTouchendWithoutOriginalEvent(0, [0,1]);
+          
+          //Can not drag the slider anymore
+          var touchPositionForSlider = helper.getMousePosition(70);
+          // touch move for slider
+          helper.fireTouchmoveWithoutOriginalEvent(touchPositionForSlider, 0, [0, 1]);
+          
+          expect(helper.scope.slider.value).to.equal(expectedValue);
+          expect(helper.slider.positionTrackingHandle.callCount).to.equal(2);
+          expect(helper.slider.callOnChange.callCount).to.equal(2);
+      });
   });
 }());
